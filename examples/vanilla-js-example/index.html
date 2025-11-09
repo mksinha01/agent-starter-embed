@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice AI Chat - Vanilla JS</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 40px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 32px;
+    }
+
+    button {
+      padding: 12px 24px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-weight: 600;
+    }
+
+    button.primary {
+      background: #667eea;
+      color: white;
+    }
+
+    button.primary:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    button.danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    button.danger:hover {
+      background: #dc2626;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .status {
+      text-align: center;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      font-weight: 500;
+    }
+
+    .status.disconnected {
+      background: #fee;
+      color: #c00;
+    }
+
+    .status.connecting {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .status.connected {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .transcript {
+      background: #f9fafb;
+      border-radius: 8px;
+      padding: 24px;
+      min-height: 300px;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .transcript h3 {
+      color: #666;
+      margin-bottom: 16px;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .message {
+      margin-bottom: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .message.user {
+      background: #ede9fe;
+      color: #5b21b6;
+      margin-left: 20%;
+    }
+
+    .message.bot {
+      background: #dbeafe;
+      color: #1e40af;
+      margin-right: 20%;
+    }
+
+    .message .label {
+      font-weight: 600;
+      margin-bottom: 4px;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .loading {
+      text-align: center;
+      color: #666;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎙️ Voice AI Chat</h1>
+    
+    <div class="controls">
+      <button id="start-btn" class="primary">Start Voice Chat</button>
+      <button id="stop-btn" class="danger" disabled>Stop Voice Chat</button>
+    </div>
+
+    <div id="status" class="status disconnected">
+      Status: Disconnected
+    </div>
+
+    <div class="transcript">
+      <h3>Conversation Transcript</h3>
+      <div id="transcript-content">
+        <div class="loading">Start a conversation to see the transcript...</div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { RTVIClient } from 'https://cdn.jsdelivr.net/npm/@pipecat-ai/client-js/+esm';
+    import { DailyTransport } from 'https://cdn.jsdelivr.net/npm/@pipecat-ai/daily-transport/+esm';
+
+    // DOM elements
+    const startBtn = document.getElementById('start-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const statusEl = document.getElementById('status');
+    const transcriptContent = document.getElementById('transcript-content');
+
+    // State
+    let client = null;
+
+    // Update status display
+    function updateStatus(status, message) {
+      statusEl.className = `status ${status}`;
+      statusEl.textContent = `Status: ${message}`;
+    }
+
+    // Add message to transcript
+    function addMessage(speaker, text) {
+      // Remove loading message if present
+      const loading = transcriptContent.querySelector('.loading');
+      if (loading) {
+        loading.remove();
+      }
+
+      const messageEl = document.createElement('div');
+      messageEl.className = `message ${speaker}`;
+      messageEl.innerHTML = `
+        <div class="label">${speaker === 'user' ? 'You' : 'AI Assistant'}</div>
+        <div>${text}</div>
+      `;
+      transcriptContent.appendChild(messageEl);
+      
+      // Scroll to bottom
+      transcriptContent.scrollTop = transcriptContent.scrollHeight;
+    }
+
+    // Start voice chat
+    async function startVoice() {
+      try {
+        startBtn.disabled = true;
+        updateStatus('connecting', 'Connecting...');
+
+        // Create room
+        const response = await fetch('http://localhost:8001/create-room', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create room');
+        }
+
+        const { room_url, token } = await response.json();
+
+        // Initialize client
+        client = new RTVIClient({
+          transport: new DailyTransport(),
+          params: {
+            baseUrl: room_url,
+          },
+          enableMic: true,
+          enableCam: false,
+          timeout: 15000,
+        });
+
+        // Event handlers
+        client.on('connected', () => {
+          console.log('✅ Connected to voice chat');
+          updateStatus('connected', 'Connected - Start speaking!');
+          startBtn.disabled = true;
+          stopBtn.disabled = false;
+        });
+
+        client.on('disconnected', () => {
+          console.log('❌ Disconnected from voice chat');
+          updateStatus('disconnected', 'Disconnected');
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+        });
+
+        client.on('userTranscript', (text) => {
+          console.log('User said:', text);
+          addMessage('user', text);
+        });
+
+        client.on('botTranscript', (text) => {
+          console.log('Bot said:', text);
+          addMessage('bot', text);
+        });
+
+        client.on('error', (error) => {
+          console.error('Voice error:', error);
+          updateStatus('disconnected', `Error: ${error.message}`);
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+        });
+
+        // Connect
+        await client.connect(token);
+      } catch (error) {
+        console.error('Failed to start voice:', error);
+        updateStatus('disconnected', `Error: ${error.message}`);
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+      }
+    }
+
+    // Stop voice chat
+    async function stopVoice() {
+      if (client) {
+        await client.disconnect();
+        client = null;
+      }
+    }
+
+    // Event listeners
+    startBtn.addEventListener('click', startVoice);
+    stopBtn.addEventListener('click', stopVoice);
+
+    // Test backend on load
+    window.addEventListener('load', async () => {
+      try {
+        const response = await fetch('http://localhost:8001/health');
+        if (response.ok) {
+          console.log('✅ Backend is running');
+        }
+      } catch (error) {
+        console.error('❌ Backend not reachable:', error);
+        updateStatus('disconnected', 'Backend not reachable - Please start the backend server');
+        startBtn.disabled = true;
+      }
+    });
+  </script>
+</body>
+</html>
