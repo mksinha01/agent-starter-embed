@@ -1,3 +1,7 @@
+<div align="center">
+
+![Voice AI Agent Starter Template Banner](assets/banner.png)
+
 # 🎙️ Pipecat Voice AI Agent - Universal Template
 
 > **A production-ready, framework-agnostic template for integrating Pipecat voice AI agents with any frontend**
@@ -5,6 +9,8 @@
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
 [![Python](https://img.shields.io/badge/Python-3.9+-green.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+</div>
 
 Transform any web application into a voice-enabled AI assistant in minutes. This standardized template provides everything you need to integrate real-time voice conversations powered by Pipecat AI framework.
 
