@@ -6,7 +6,7 @@ Your free Gemini API is now fully configured and working correctly!
 
 ### ✅ What's Working:
 
-- **Free Gemini API Key**: `AIzaSyB0N922F1DoPqigH95F6wciEEy7IBz6Iu8`
+- **Free Gemini API Key**
 - **Model**: `gemini-2.0-flash` (latest and fastest)
 - **LLM Response**: Successfully tested ✓
 - **Backend Server**: Running on http://localhost:8001
