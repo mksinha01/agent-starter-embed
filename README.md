@@ -354,5 +354,3 @@ If this template helps you build amazing voice AI applications, please star the 
 ---
 
 **Built with ❤️ using [Pipecat](https://pipecat.ai) and [Daily.co](https://daily.co)**
-#   v o i c e - f o r - w e b  
- 
